@@ -1,0 +1,536 @@
+---
+title: "CUSTOMER CHURN MANAGEMENT"
+output: html_notebook
+---
+
+
+# INTRODUCTION
+
+
+## Churn definition
+
+Customer churn is a major problem for most of the companies. Losing customers require 
+gaining new customers to replace them. This could be around 10X more expensive
+than retaining existing customers, depending on the domain.
+
+A customer is considered as churn when he/she stop using your company's product or
+service. This is easy to define it for contractual setting, as a customer is 
+considered as churn when fails to renew the contract. But in a non-contractual 
+setting there aren't clear rules for defining churn. In most of these cases, business 
+users with extended domain knowledge together with data scientists/data analysts
+define what is considered as churn in the specific problem. e.g. in a retail 
+organization the team could define that a customer is a churn when fails to 
+purchase for the last 4 months. 
+
+
+## Benefits of churn management
+
+The main benefit is increased revenue by obtaining higher retention rates and 
+customer satisfaction. The other benefit is the optimization of marketing
+expenditures with targeted marketing campaigns & reallocation of marketing budgets.
+
+## Churn rate
+
+You can calculate churn rate by dividing the number of customers lost during
+a specific time period -- say a quarter or a year -- by the number of customers we had at
+the beginning of that time period.
+
+For example, if we start the quarter with 400 customers and end with 380, our
+churn rate is 5% because we lost 5% or 20 of our customers.
+
+## Our churn problem 
+
+Our case study is a telecommunication company that wants to develop a churn model to 
+predict the probability of a new customer to churn. 
+The telecommunications sector has become one of the main industries in developed
+countries. The technical progress and the increasing number of operators raised 
+the level of competition. Companies are working hard to survive in this 
+competitive market depending on multiple strategies. 
+
+Three main strategies have been proposed to generate more revenues:  
+
+- Acquire new customers  
+- Upsell the existing customers (persuade a customer to buy something additional or more expensive) 
+- Increase the retention period of customers. 
+
+In our case, we focus on the last strategy i.e. increase the retention period of 
+customers. 
+
+
+## Import libraries
+
+At first we are loading all libraries. 
+
+```{r}
+library(tidyverse)
+library(ggthemes)
+library(correlationfunnel)
+library(knitr)
+library(caret)
+library(recipes)
+library(yardstick)
+
+# Set the black & white theme for all plots
+theme_set(theme_bw())
+```
+
+## Load dataset 
+
+We use the read_csv() function (from readr library) to read the csv file in R. 
+
+```{r}
+telco <- read_csv(file = "data/WA_Fn-UseC_-Telco-Customer-Churn.csv")
+
+```
+
+
+# EXPLORATORY ANALYSIS
+
+
+## Inspect the dataset 
+
+Use glimpse() function to inspect the dataset on console or View() to inspect 
+the data in a spreadsheet-type format. 
+
+```{r}
+telco %>% glimpse()
+
+telco %>% View()
+```
+
+- Customer ID  
+- gender | Whether the customer is a male or a female  
+- SeniorCitizen | Whether the customer is a senior citizen or not (1, 0)
+- Partner | Whether the customer has a partner or not (Yes, No)
+- Dependents | Whether the customer has dependents or not (Yes, No)
+- tenure | Number of months the customer has stayed with the company
+- PhoneService | Whether the customer has a phone service or not (Yes, No)
+- MultipleLines | Whether the customer has multiple lines or not (Yes, No, No phone service)
+- InternetService | Customer’s internet service provider (DSL, Fiber optic, No)
+- OnlineSecurity | Whether the customer has online security or not (Yes, No, No internet service)  
+- OnlineBackup | Whether the customer has online backup or not (Yes, No, No internet service)  
+- DeviceProtection | Whether the customer has device protection or not (Yes, No, No internet service)  
+- TechSupport | Whether the customer has tech support or not (Yes, No, No internet service)  
+- StreamingTV | Whether the customer has streaming TV or not (Yes, No, No internet service)  
+- StreamingMovies | Whether the customer has streaming movies or not (Yes, No, No internet service) 
+- Contract | The contract term of the customer (Month-to-month, One year, Two years)  
+- PaperlessBilling | Whether the customer has paperless billing or not (Yes, No)  
+- PaymentMethod | The customer’s payment method (Electronic check, Mailed check, Bank transfer (automatic), Credit card (automatic))  
+- MonthlyCharges | The amount charged to the customer monthly  
+- TotalCharges | The total amount charged to the customer  
+- Churn | Whether the customer churned or not (Yes or No)  
+
+
+## Check for missing values
+
+One of the most common problems in any data analysis is to discover & handle
+missing data. 
+
+```{r}
+telco %>%
+    map_df(~ sum(is.na(.))) %>%
+    gather() %>%
+    arrange(desc(value))
+
+telco %>% 
+  filter(is.na(TotalCharges)) %>% 
+  select(Churn, tenure, TotalCharges, MonthlyCharges) %>% View()
+
+```
+
+There are 11 missing values on **Totalcharges** variable (on the first table). 
+We can see that this occurs when the tenure is 0 (on the second table). It 
+would be reasonable to assume that these are customers
+during the first month of their contract, so it would be safe to replace the 
+missing with the MonthlyCharges values.
+
+## Replace missing values
+
+```{r}
+
+telco <- 
+  telco %>% 
+  mutate(TotalCharges = if_else(is.na(TotalCharges), MonthlyCharges, TotalCharges))
+
+```
+
+
+## Check the levels of categorical/text variables 
+
+
+```{r}
+
+telco %>%
+  summarise_if(is.character, n_distinct) %>% 
+  t()
+
+```
+
+It looks that all character variables, except customerID, are categorical 
+variables with a few levels (2-4). 
+
+
+## Delete variable
+
+We don't need the customerID variable, so it's better to delete it. 
+
+
+```{r}
+telco <- 
+  telco %>% 
+  select(- customerID)
+
+```
+
+## Categorical variables distribution
+
+Now we want to check the distribution of categorical variables in relation to churn. 
+
+```{r}
+
+telco %>% 
+  select_if(is.character) %>% 
+  gather(key = key, value = value, - Churn, factor_key = T) %>% 
+  ggplot(aes( x = value, fill = Churn)) +
+  geom_bar() +
+  facet_wrap(~key, scales = 'free') +
+  scale_x_discrete(labels = abbreviate) +
+  theme(axis.text.y = element_text(angle = 360)) +
+  labs(
+    title = 'Distribution of categorical variables in relation to Churn',
+    x = '') +
+  scale_fill_tableau()
+
+
+```
+  
+- Customers with dependents are less likely to churn 
+- Customers with Online security are less likely to churn  
+- Customers with Tech support are less likely to churn  
+- Customers with Month-to-Month contract are more likely to churn
+
+## Numerical variables distribution
+
+Check the distribution of the numerical variables concerning churn. 
+
+```{r}
+
+telco %>% 
+  select(SeniorCitizen, tenure, MonthlyCharges, TotalCharges, Churn) %>% 
+  gather(key = "Variable", value = "Value", -Churn) %>% 
+  ggplot(aes(Value, fill = Churn)) +
+  geom_histogram(bins = 20) +
+  facet_wrap(~ Variable, scales = "free") +
+  labs(
+    title = "Numerical variables histograms",
+    x = ""
+  ) +
+  scale_fill_tableau()
+
+```
+   
+- All variables except Senior citizen seems to be continuous variables.  
+- It seems that higher tenure means lower probability of churn
+
+
+## Correlation funnel 
+
+Correlation is a very important metric to understand the relationship 
+between variables. 
+The package correlationfunnel produces a chart, which helps us 
+understand the relationship of all variables (categorical & numerical) with churn.
+
+At first, it creates binary variables of each class of categorical variables and 
+4 bins of each numerical variable (based on quantiles). It plots all variables
+starting from the most correlated to the less correlated. 
+
+
+```{r}
+
+# Create correlation Funnel 
+telco %>%
+    binarize() %>% 
+    correlate(Churn__Yes) %>% 
+    plot_correlation_funnel()
+
+```
+
+Gender, Phone Service & MultipleLines seems to be unimportant for churn, as
+almost all classes are near zero correlated. During the model building phase, we 
+can exclude these variables as part of our feature engineering. 
+
+On the other hand, Contract, Online Security, Tech support & tenure seems important.
+
+
+
+# MODELLING
+
+There are a lot of ways we could approach this churn problem. For example, the
+traditional approach is survival analysis techniques that mainly try to
+predict when a customer will probably churn.
+
+But in our case, we'll develop a machine learning model that will predict the 
+churn probability for all customers. 
+
+
+## Split dataset 
+
+At first, we're splitting the dataset into 2 parts, training & test dataset. We'll 
+use the training dataset to train our model & the testing dataset to check the 
+performance of the model. 
+
+```{r}
+# Split the dataset in 70% & 30%
+set.seed(1)
+inTrain = createDataPartition(telco$Churn, p = .70)[[1]]
+
+# Assign the 70% of observations to training data
+training <- telco[inTrain,]
+
+# Assign the remaining 30 % of observations to testing data
+testing <- telco[-inTrain,]
+
+```
+
+
+## Prepare the recipe of data for modeling
+
+Here we're using the recipes package to apply the same pre-processing steps to 
+training & test data. 
+
+```{r}
+
+recipe_obj <- 
+  recipe(Churn ~ ., data = training) %>% 
+  step_zv(all_predictors()) %>%       # check any zero variance features
+  step_log('TotalCharges') %>%        # log transform TotalCharges feature
+  step_num2factor('SeniorCitizen', 
+                  levels = c("0", "1"),
+                  transform = function(x) x + 1) %>%  # convert Senior citizen to factor
+  step_discretize('tenure', options = list(cuts = 6)) %>%  # discretize tenure feature into 6 bins
+  step_center(all_numeric()) %>% 
+  step_scale(all_numeric()) %>%         # scale the numeric features
+  prep()
+```
+
+## Processing data according the recipe
+
+
+```{r}
+
+train_data <- bake(recipe_obj, training)
+
+test_data  <- bake(recipe_obj, testing)
+```
+
+
+## Setting the train controls for modeling
+
+```{r}
+
+train_ctr <- trainControl(method = 'cv', 
+                          number = 10,
+                          classProbs = TRUE,
+                          summaryFunction = twoClassSummary
+                          )
+
+```
+
+## Logistic Regression Model
+
+```{r}
+# Logistic_model <- train(Churn ~ .,
+#                         data = train_data,
+#                         method = 'glm',
+#                         family = 'binomial',
+#                         trControl = train_ctr,
+#                         metric = 'ROC')
+
+
+```
+
+## Random Forest Model
+
+We will use random tuning
+
+```{r}
+# rf_model <- train(Churn ~ ., 
+#                   data = train_data,
+#                   method = 'rf',
+#                   trControl = train_ctr,
+#                   tuneLength = 5,
+#                   metric = 'ROC')
+
+```
+
+
+## XGBoost Model
+
+```{r}
+# xgb_model <- train(Churn ~ ., data = train_data,
+#                         method = 'xgbTree',
+#                         trControl = train_ctr,
+#                         tuneLength = 5,
+#                         metric = 'ROC')
+
+```
+
+## Save all models
+
+```{r eval=FALSE, include=FALSE}
+# save(Logistic_model, rf_model, xgb_model, file = "./data/ml_models.RDA")
+
+```
+
+## Load trained models
+
+```{r}
+load(file = "./data/ml_models.RDA")
+
+```
+
+
+## Model Comparison
+
+In this step we'll compare the models accuracy. 
+
+```{r}
+
+model_list <- resamples(list(Logistic = Logistic_model,
+                             Random_forest = rf_model,
+                             XgBoost = xgb_model))
+
+summary(model_list)
+```
+   
+- Based on ROC (AUC value) the best model is Logistic regression.
+
+The AUC value of the best model (mean of logistic regression) is 0.849. In general,
+models with an AUC value > 0.7 are considered as useful, depending of course on 
+the context of the problem. 
+
+## Model evaluation 
+
+```{r}
+
+# Predictions on test data
+pred_logistic <- predict(Logistic_model, newdata = test_data, type = 'prob')
+
+pred_rf <- predict(rf_model, newdata = test_data, type = 'prob')
+
+pred_xgb <- predict(xgb_model, newdata = test_data, type = 'prob')
+
+
+evaluation_tbl <- tibble(true_class     = test_data$Churn,
+                         logistic_churn = pred_logistic$Yes,
+                         rf_churn       = pred_rf$Yes,
+                         xgb_churn      = pred_xgb$Yes)
+
+evaluation_tbl
+```
+
+
+## Roc curve 
+
+ROC curve or receiver operating characteristic curve is a plot that illustrates 
+the diagnostic ability of a binary classifier system as its discrimination 
+threshold is varied. 
+
+i.e. how well the model predicts at different thresholds
+
+```{r}
+
+# set the second level as the positive class
+
+options(yardstick.event_first = FALSE)
+
+# creating data for ploting ROC curve
+
+roc_curve_logistic <- roc_curve(evaluation_tbl, true_class, logistic_churn) %>% 
+  mutate(model = 'logistic')
+
+roc_curve_rf <- roc_curve(evaluation_tbl, true_class, rf_churn) %>% 
+  mutate(model = 'RF')
+
+roc_curve_xgb <- roc_curve(evaluation_tbl, true_class, xgb_churn) %>% 
+  mutate(model = 'XGB')
+
+# combine all the roc curve data
+
+roc_curve_combine_tbl <- Reduce(rbind, list(roc_curve_logistic, roc_curve_rf,
+                                            roc_curve_xgb))
+
+head(roc_curve_combine_tbl,10)
+
+
+
+# Plot ROC curves
+
+roc_curve_combine_tbl %>% 
+  ggplot(aes(x = 1- specificity, y = sensitivity, color = model))+
+  geom_line(size = 1)+
+  geom_abline(linetype = 'dashed')+
+  scale_color_tableau()+
+  labs(title = 'ROC curve Comparison',
+       x = '1 - Specificity',
+       y = 'Sensitivity')
+```
+
+The largest the AUC value, the better is the model accuracy. 
+
+## Confusion matrix for logistic model
+
+
+```{r}
+# Use 0.5 as threshold for classifying the customers
+pred_class <- ifelse(pred_logistic$Yes > 0.5, 'Yes', 'No') %>% 
+  as.factor()
+  
+confusionMatrix(pred_class, test_data$Churn, positive = 'Yes')
+```
+
+## Predict churn for new customers
+
+
+```{r}
+
+new_data <- read_csv(file = "./data/new_data.csv")
+
+new_data_recipe  <- bake(recipe_obj, new_data)
+
+new_dat_pred <- 
+  predict(Logistic_model, newdata = new_data_recipe, type = 'prob') %>% 
+  select(Yes) %>% 
+  rename(churn_prob = Yes) %>% 
+  bind_cols(new_data) %>% 
+  mutate(churn_group = ntile(churn_prob, n = 10)) %>% 
+  select(churn_prob, churn_group, tenure, Contract, TechSupport,  everything())
+
+new_dat_pred %>% View()
+```
+
+
+# CONCLUSIONS 
+
+## Create a churn risk ranking
+
+Although we developed a model that can predict pretty well if a customer will 
+churn, the model output probabilities are not sufficient in the business context. 
+We need some metric that will be understood & easily used by all stakeholders 
+and remove the complexities of e.g. explaining a threshold to non-technical
+stakeholder. 
+
+So instead of an actual probability, a churn risk ranking would be more useful. 
+So we break up the probabilities variable into 10 churn risk buckets. Now a customer
+has a churn risk from **1 (lowest probability) to 10 (highest probability) **. 
+
+
+## Tactics for churn prevention 
+
+Develop different sales offers (or marketing campaigns) for the different churn risk groups. 
+
+For example, customers that belong in churn risk groups 10 & 9 have a significantly higher
+churn risk than for example 1 & 2. So it will be crucial to offer them something more 
+(discount, free upgrade etc.) in order to retain them. 
+
+

@@ -1,0 +1,52 @@
+---
+title: "CUSTOMER CHURN MANAGEMENT"
+output: html_notebook
+---
+
+
+# MODELLING USING H2O AUTOML
+
+## Create H2O dataset
+
+```{r}
+
+library(h2o)
+h2o.init()
+
+model_h2o <- 
+  train_data %>% 
+  mutate(Churn = as.factor(Churn)) %>% 
+  as.h2o()
+
+```
+
+## Run automl on training data
+
+```{r}
+aml <- h2o.automl(y = "Churn",
+                  training_frame = model_h2o,
+                  max_runtime_secs = 60,
+                  nfolds = 10)
+
+
+```
+
+## Check for the best model
+
+```{r}
+
+# The leader model is stored at `aml@leader` and the leaderboard is stored at `aml@leaderboard`.
+lb <- aml@leaderboard
+
+lb %>% 
+  as.data.frame()
+
+
+# Get model ids for all models in the AutoML Leaderboard
+model_ids <- as.data.frame(aml@leaderboard$model_id)[,1]
+
+
+# Get the best model
+best_model <- h2o.getModel(model_ids[1])
+```
+

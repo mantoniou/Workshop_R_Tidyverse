@@ -1,0 +1,493 @@
+---
+title: "Introduction to tidyverse"
+output: html_notebook
+---
+
+## BASIC TIDYVERSE
+
+### Load libraries
+
+How to load tidyverse libraries in R. It is the easiest way to load all core 
+tidyverse packages using one command in the environment (ggplot2, purr, tibble,
+dplyr, tidyr, stringr, readr, forcats)
+
+```{r}
+library(tidyverse)
+```
+
+
+### Pipe operator
+
+This is an example of filtering observations from a dataframe without using the 
+pipe operator
+
+```{r}
+filter(iris, Species == "setosa")
+```
+
+The pipe operator %>% basically chaining arguments together in a clear way. 
+
+```{r}
+iris %>% 
+  filter(Species == "setosa")
+```
+
+Advantages:  
+- You'll avoid nested function calls  
+- You'll minimize the need for local variables and function definitions  
+- Easy to add steps anywhere in the sequence of operations.  
+
+As you're getting more familiar with tidyverse you will understand the power of 
+this concept. 
+
+## DATA WRANGLING
+
+Main Libraries: dplyr, tibble, stringr, readr, forcats
+
+### Filtering observations
+
+Use filter() to subset observations from multiple variables.
+
+```{r}
+iris %>% 
+  filter(Species == "setosa" & Sepal.Length > 4.5)
+```
+
+
+### Arranging observations
+
+arrange() sorts a dataframe based on one variable
+
+```{r}
+iris %>% 
+  arrange(Sepal.Length)
+  
+```
+
+Use arrange() to sort a table based on two or more variables
+
+```{r}
+iris %>% 
+  arrange(Sepal.Length, Petal.Length)
+  
+```
+
+### Arranging observations in descending order
+
+```{r}
+iris %>% 
+  arrange(desc(Sepal.Length))
+
+```
+
+
+### Change an existing variable with mutate()
+
+mutate() adds or alter a variable
+
+```{r}
+iris %>% 
+  mutate(Sepal.Length = Sepal.Length * 2)
+```
+
+
+### Use mutate() to add a new column
+
+Add a new variable in the dataframe
+
+```{r}
+iris %>% 
+  mutate(Sepal.Length_2 = Sepal.Length * 2)
+```
+
+
+### Combine Filtering, Arranging & Mutating
+
+```{r}
+iris %>% 
+  filter(Species == "setosa" & Sepal.Length < 4.6) %>% 
+  mutate(Sepal.Length2 = Sepal.Length * 2) %>% 
+  arrange(desc(Sepal.Length2))
+
+```
+
+
+
+## TIDYING DATA 
+
+Main Libraries: tidyr, tibble
+
+Tidy datasets are easy to manipulate, model, visualize and have a specific structure.
+
+### What is tidy data?
+
+A set of data in a specific form:  
+
+- Each variable is a column
+- Each observation is a row  
+- Each value is a cell
+
+This is an example of a messy dataset
+
+```{r}
+datasets::WorldPhones
+```
+
+Here each column presents the number of phones in a specific area. Each row 
+presents the number of phones per specific year. It is messy & very difficult to
+handle e.g. analyze, model...
+
+
+This is an example of a tidy dataset
+
+```{r}
+iris
+```
+
+
+### Gather 
+
+Essentially it takes a "wide" dataframe with a lot of columns and transforms it 
+to "long". It takes the following arguments:
+
+1. the key, where you create the group variable
+2. the value, which is the value variable (usually numeric)
+3. The columns you want to group
+
+Use gather() to make a tidy dataframe 
+
+```{r}
+WorldPhones %>% 
+  as.data.frame() %>%
+  rownames_to_column("year") %>% 
+  gather(key = "Area", value = "Phones", N.Amer:Mid.Amer)
+
+```
+
+
+### Spread
+
+It converts a long dataframe into a wide dataframe. In practice it reverses the
+gather function, so it does the opposite of making tidy dataset. Sometimes it is
+used as an intermediate step in data transformation or when creating tables 
+for reports or presentations
+
+```{r}
+long_dataset <- 
+  datasets::WorldPhones %>% 
+  as.data.frame() %>%
+  rownames_to_column("year") %>% 
+  # gather(N.Amer, Europe, Asia, S.Amer, Oceania, Africa, Mid.Amer, key = "Area", value = "Phones")
+  gather(key = "Area", value = "Phones", N.Amer:Mid.Amer)
+
+long_dataset %>% 
+  spread(key = "Area", value = "Phones")
+```
+
+### Separate
+
+separate() takes string values in a single column and splits into multiple 
+columns. The following arguments are used:
+
+1. The name of the column to separate
+2. The vector of new column names to separate into
+3. The character to separate the values by 
+
+```{r}
+new <- data.frame(
+  First = c("A_1", "A_2", "B_2", "B_3", "C_1"),
+  Second = c(4, 5, 5, 6, 7)
+)
+
+new %>% 
+  separate(First, into = c("main", "secondary"), sep = "_")
+```
+
+
+
+## SUMMARISING & GROUPING
+
+Main Libraries: dplyr
+
+### Summarize single variable
+
+We use summarise() to produce summaries of one or more variables. A new 
+dataframe is created that consists of the specified summary.
+
+```{r}
+iris %>% 
+  summarise(Avg_Sepal.Length = mean(Sepal.Length))
+
+```
+
+
+### Summarize multiple variables
+
+Use it to create more transformations. You can do as many transformations as you 
+want, just separate these by commas. 
+
+```{r}
+iris %>% 
+  summarise(
+    Avg_Sepal.Length = mean(Sepal.Length),
+    Sum_Sepal.Width = sum(Sepal.Width),
+    Median_Sepal.Width = median(Sepal.Width)
+    )
+
+```
+
+
+Use summarise_all() to summarise all variables. It can apply a single function to all
+variables of a dataframe. If the function doesn't apply to a variable, it will 
+produce a missing value.
+
+```{r}
+iris %>% 
+  summarise_all(mean)
+
+```
+
+Use summarise_at() to summarise specific variables by applying multiple functions.
+
+```{r}
+iris %>% 
+  summarise_at(vars(Sepal.Length, Sepal.Width), funs(mean, median))
+```
+
+
+### Group by & summarise
+
+Pass the variable name into group_by to create an individual group for each value 
+in the column. It creates a dataframe for each group and then executes the 
+chosen functions. At the end it reassembles the individual output.
+group_by() in conjunction with summarise() is one of the most important concepts
+in tidyverse.
+
+```{r}
+iris %>% 
+  group_by(Species) %>% 
+  summarise(Avg_Sepal.Length = mean(Sepal.Length))
+```
+
+## VISUALISE DATA
+
+Library: ggplot2
+
+We'll explore the power of ggplot, which is probably the most powerful library
+for visualization in any programming language. There are significant packages 
+in R and other languages (e.g. matplotlib, seaborn in Python) but nothing can
+compare to ggplot
+
+There are 3 main elements in the ggplot syntax:
+
+- 1. ggplot() function called to initiate the plots 
+
+Initiate a plot by passing the dataframe as the first argument of the ggplot()
+or use the pipe operator %>% 
+
+ggplot(dataframe, ....) or dataframe %>% ggplot()
+
+- 2. aes() aesthetic layer used for representing the data 
+
+It defines the mappings to columns in the dataframe
+
+ggplot(dataframe, aes(x = x_var)) or dataframe %>% ggplot(aes(x = x_var))
+
+- 3. You can add multiple layers to make a plot look the way desired
+Use the ‘+’ operator to add layers in the plot. The layers define what and 
+how the plot gets rendered. The plot must have at least one layer in order to display
+
+dataframe %>% 
+  ggplot(aes(x = x_var)) +
+  geom_histogram()
+
+
+### Single Dimension plots
+
+These are plots using a single variable. 
+
+E.g. geom_density(), geom_dotplot(), 
+geom_freqpoly(), geom_histogram(), geom_bar()
+
+
+```{r}
+iris %>% 
+  ggplot(aes(Sepal.Length)) +
+  geom_histogram()
+
+```
+
+You can use a lot of arguments in the geom_ layer functions. e.g.
+
+```{r}
+iris %>% 
+ggplot(aes(Sepal.Length)) +
+  geom_histogram(bins = 10, color = "red", fill = "orange")
+
+```
+
+It is easy to change the plot. e.g. below there is a density plot. We only need
+to change the last line function name
+
+```{r}
+iris %>% 
+ggplot(aes(Sepal.Length)) +
+  geom_density()
+
+```
+
+
+### 2D plots
+
+Create plots with 2 variables in order to show their relationship. We add an 
+additional variable to the aes() function. There are a lot of geom_ functions 
+but the most common are geom_point(), geom_col(), depending on the variables
+data type. 
+
+Below there is a scatter plot
+
+```{r}
+iris %>%
+  ggplot(aes(Sepal.Length, Sepal.Width)) +
+  geom_point()
+
+```
+
+Below there is a bar plot. Here we perform some data transformations prior to the 
+plotting. 
+
+```{r}
+iris %>% 
+  group_by(Species) %>% 
+  summarise(Sepal.Width = mean(Sepal.Width)) %>% 
+  ggplot(aes(Species, Sepal.Width)) +
+  geom_col()
+
+```
+
+
+### Add layers & elements to the plot
+
+Scatter plot with smoothed line (local regression line)
+
+```{r}
+iris %>%
+  ggplot(aes(Sepal.Length, Sepal.Width)) +
+  geom_point() + 
+  geom_smooth()
+
+```
+
+Add a title to the previous plot
+
+```{r}
+iris %>%
+  ggplot(aes(Sepal.Length, Sepal.Width)) +
+  geom_point() +
+  geom_smooth() +
+  labs(
+  title = "Scatter plot with smooth line for Sepal.Width and Sepal.Length"
+)
+
+```
+
+Add a specific theme on the plot 
+
+```{r}
+iris %>%
+  ggplot(aes(Sepal.Length, Sepal.Width)) +
+  geom_point() +
+  geom_smooth() +
+  labs(
+  title = "Scatter plot with smooth line for Sepal.Width and Sepal.Length"
+) +
+  theme_bw()
+
+```
+
+## COMBINE TIDYVERSE PACKAGES
+
+Here we combine tidying, wrangling, grouping, summarizing and plotting data.
+
+```{r}
+WorldPhones %>% 
+  
+  # Make a tidy dataset
+  as.data.frame() %>%
+  rownames_to_column("year") %>% 
+  gather(key = "Area", value = "Phones", N.Amer:Mid.Amer) %>% 
+  filter(year > 1951) %>% 
+  
+  # Create the growth rate variable
+  group_by(Area) %>% 
+  mutate(previous_value = lag(Phones)) %>%
+  mutate(growth_rate = (Phones-previous_value)/Phones) %>% 
+  
+  # Summarise the dataset
+  group_by(Area) %>% 
+  summarise(Avg_growth = mean(growth_rate, na.rm = TRUE)) %>% 
+  
+  # Create the plot
+  ggplot(aes(reorder(Area, -Avg_growth), Avg_growth)) +
+  geom_col() +
+  labs(
+    title = "Average growth rate of phones per area",
+    subtitle = "Between 1956 & 1961",
+    y = "Average growth rate (%)",
+    x = "Area"
+  ) +
+  scale_y_continuous(labels=scales::percent) +
+  theme_bw()
+
+```
+
+## MODELLING 
+
+### Linear regression model residuals
+
+Plot the residuals of a linear regression model 
+
+```{r}
+# Modelr is a library that works efficient with other tidyverse packages
+library(modelr)
+
+# Create a simple linear regression model
+lm1 <- lm(Sepal.Length ~ Sepal.Width, data = iris)
+
+iris %>% 
+  add_residuals(lm1, "lresid") %>% 
+  ggplot(aes(Sepal.Width, lresid)) +
+  geom_hex(bins = 30)
+
+```
+
+### Multiple models
+
+Fit multiple models in a grouped dataframe. The target here is after developing
+a linear model between Sepal.Length & Sepal.Width for each Species, report the 
+p value of the Sepal.Width 
+
+```{r}
+# Summarizes key information about statistical objects in tidy tibbles. This
+# makes it easy to report results, create plots and consistently work with large
+# numbers of models at once
+library(broom)
+
+# Create a nested dataframe
+iris %>% 
+  group_by(Species) %>% 
+  nest() %>% 
+
+  # Develop a separate linear regression model 
+  mutate(fit = map(data, ~lm(Sepal.Length ~ Sepal.Width, data = .)), 
+         results = map(fit, tidy)) %>% 
+  unnest(results) %>% 
+  
+  # Filter & print p values
+  filter(term == "Sepal.Width") %>% 
+  select(Species, term, p.value)
+
+
+```
+
+

@@ -1,0 +1,291 @@
+---
+title: "Basic R concepts"
+output: html_notebook
+---
+
+## BASIC R CONCEPTS
+
+
+### Variables 
+
+You can consider it as a placeholder for any object. We use the assignment 
+operator '<-' to assign the value. The name of the variable consists of letters, 
+numbers, dots or underline characters and is case sensitive
+
+```{r}
+
+x <- 5
+x
+```
+
+
+### Operators in R
+
+Arithmetic operators
+
+```{r}
+
+3 + 3  #Addition
+3 - 2  #Subtraction
+3 * 2  #Multiplication
+6 / 2  #Division
+3 ^ 2  #Exponentiation
+10 %% 3  #Modulus 
+10 %/% 3  #Integer division
+
+```
+
+Mathematical functions
+
+```{r}
+abs(-5)  #Absolute 
+log(2) #Natural logarithm
+log(2, base = 10 ) #Logarithm
+exp(5) #Exponential
+factorial(5) #factorial
+
+```
+
+Special numbers
+
+- infinity: typically presents a number so big or so small that cannot be 
+handled by your PC
+- NaN ("Not a Number") represents a value that cannot be represented by a real 
+value. Typically you can come across if output of any calculation does not make
+any mathematical sense 
+- NA ("Not Available") presents non available or simply missing values. You will
+find these in most of the datasets you will analyze
+
+```{r}
+
+#Infinity
+1 / 0 #Positive infinity
+-1 / 0 #Negative infinity
+Inf + 5 #Operation on Inf
+
+#Undefined
+Inf / Inf #NaN (Not a Number)
+
+#Missing value
+NA 
+
+```
+
+### Logical operators
+
+The logical operators return TRUE or FALSE, depending on the relationship between
+the parameters.
+
+```{r}
+#Logical operators
+5 > 2  #greater than
+5 >= 2 #greater than equal to 
+5 < 2  #less than
+5 <= 2  #less than equal to
+5 == 2 #exactly equal to
+5 != 2 #not equal to
+!(TRUE) #logical NOT operator
+TRUE | FALSE #logical OR operator
+TRUE & FALSE #logical AND Operator
+```
+
+### Data structures 
+
+These are the different ways that data are stored and organized in the memory. 
+Essentially is a collection of data elements grouped under one name. In R these 
+are:
+
+- Vector
+- Factor
+- List
+- Dataframe 
+- Matrix 
+- Array 
+
+The two most important aspects of a data structure are:
+
+1) What kind of items does it includes?  - Similar or Dissimilar
+
+When items are similar then the data structure is homogeneous. Atomic 
+vector, matrix and array are such. 
+When items are dissimilar then the data structure is heterogeneous. List and 
+dataframe are such. 
+
+2) How these items are arranged? - 1D, 2D or multi-dimensional  
+
+Atomic vector and list are 1D data structures. 
+Matrix and Dataframes are 2D data structures. 
+Arrays can be multi-dimensional. 
+
+The basic classes of objects in R are the following:
+- Character e.g. "a", "B"
+- Numeric e.g. 4.1, 5.5
+- Integer e.g. 5, 6
+- Logical  True, False
+
+
+### Single dimension data structures in R
+
+- Atomic vector
+- Factor
+- List
+
+Atomic vectors are known as vectors. They are homogeneous data structures
+
+```{r}
+# Character
+name <- c("maria", "george", "john")
+name
+
+# Numeric
+weight <- c(65.4, 81.3, 80.5)
+weight
+
+# Integer
+height <- c(175L, 183L, 185L)
+height
+
+# Logical
+work <- c(TRUE, FALSE, TRUE)
+work
+
+```
+
+
+Factor is a special case of vector used to store categorical values. Values are
+stored as integers and each integer is assigned to a factor level. 
+
+```{r}
+# using factor
+gender <- factor(c("Female", "Male", "Male"))
+gender
+
+as.numeric(gender)
+```
+
+
+List is a heterogeneous data structure, so that means it can contain items of 
+different classes. It is also single dimensional.
+
+```{r}
+# Create an unnamed list
+person1 <- list("maria", 56.4, 175L, TRUE)
+person1
+
+
+# Create an named list
+person1 <- list(name = "maria",
+                weight = 56.4, 
+                height = 175L, 
+                work = TRUE)
+person1
+
+```
+
+
+### Higher dimensional data structures 
+
+- Dataframe 
+- Matrix 
+- Array 
+
+Dataframe is the most important data structure in R. It is heterogeneous, so it
+can contain elements of different classes. It is 2-dimensional and you can
+think of it as an excel spreadsheet. Each column is a different field and data
+are stored in different rows. 
+
+```{r}
+# Create a dataframe using vectors
+persons <- data.frame(name = name,
+                     weight = weight,
+                     height = height,
+                     work = work)
+
+persons
+```
+
+Matrix is similar to dataframes as it is 2-dimensional. Unlike dataframe is a
+homogeneous data structure, so it contains elements of the same class only. 
+Typically used to store numeric data. 
+
+```{r}
+weights <- matrix(c(65.4, 70.8, 65.7, 78.9, 82.6, 85.6, 90.8, 60.8),
+                  ncol = 2,
+                  nrow = 4)
+weights
+```
+
+Array is also a homogeneous data structure, but it can be n-dimensional. 
+
+```{r}
+# Create two vectors of different lengths.
+v1 <- c(5, 9, 3)
+v2 <- c(10, 11, 12, 13, 14, 15)
+column_names <- c("Col1","Col2","Col3")
+row_names <- c("Row1","Row2","Row3")
+matrix_names <- c("Matrix1","Matrix2")
+
+# Take these vectors as input to the array.
+result <- array(c(v1,v2),dim = c(3,3,2),dimnames = list(row_names,column_names,
+   matrix_names))
+
+result
+
+```
+
+
+### Functions 
+A function is a set of statements organized together to perform a specific task. 
+R has a large number of in-built functions and the user can create their own 
+functions.
+
+
+Built-in Functions
+Simple examples of in-built functions are mean(), max(), sum(x) etc. 
+They are directly called by user written programs.
+
+```{r}
+# Find the mean of numbers from 1 to 10
+mean(1:10)
+
+# Find the sum of numbers from 1 to 10
+sum(1:10)
+
+# Find the maximum number from a vector
+v1 <- c(2, 5, 1, 12, 5, 8, 9, 11)
+max(v1)
+
+```
+
+
+User-defined Functions
+
+We can create user-defined functions in R. They are specific to what a user 
+wants and once created they can be used like the built-in functions. 
+Below is an example of how a function is created and used.
+
+```{r}
+add_2_numbers <- function(a, b) {
+  print(a + b)
+}
+
+add_2_numbers(3, 6)
+
+```
+
+### Getting help in R
+
+If you type the question mark symbol (?) before a function, then the documentation
+for this function will appear in the help tab. 
+
+```{r}
+?mean()
+```
+
+### Load a library
+
+This is how you can load a library in your global environment.  
+
+```{r}
+library(dplyr)
+```
