@@ -195,6 +195,7 @@ exclude <- c("customer", "area")
 corrplot(cor(select(customers, -exclude)), type="upper", order="hclust")
 
 ```
+
 We can see that there are some strong correlations between the variables. Especially
 between all currency-related variables. It seems that almost all currency 
 variables are following the same pattern. 
@@ -318,7 +319,7 @@ The more green - the higher the value.
 
 -	Segment 4 contains 106 customers. They are the "average" customers as they tend to generate average revenues, have a small number of certifications, purchase an average proportion of new products and have an average DSO  
 
--	Segment 1 contains 87 customers. They are the "promising" customers as they tend to generate a relatively low revenue, have a small number of certifications, but they purchase a very high proportion of new products and have an small DSO  
+-	Segment 1 contains 87 customers. They are the "promising" customers as they tend to generate a relatively low revenue, have a small number of certifications, but they purchase a very high proportion of new products and have a small DSO  
 
 -	Segment 5 contains 143 customers. They are the "under-performing" customers as they tend to generate a very low revenue, have a very small number of certifications, purchase a very low proportion of new products and have an small DSO  
 
@@ -341,6 +342,7 @@ segment_customers %>%
   add_tally() %>% 
   summarise_each(funs(round(mean(.),2))) %>% 
   select(1, "n", everything()) %>% 
+  arrange(-last_year_revenue) %>% 
   datatable(filter = 'top', options = list(pageLength = 5, autoWidth = TRUE, dom = 'pt'))
 
 ```
@@ -392,7 +394,7 @@ It shows that there are 3 distinct groups of variables:
 
 
 ggplotly(
-        pca_customers$x %>%
+          pca_customers$x %>%
           as.data.frame() %>%
           mutate(CLIENT = customers$customer,
                  Cluster = as.factor(segment_customers$cluster),
@@ -426,7 +428,7 @@ We can see here how "well" the segments are separated. For example:
 - Segment 2 ("Close to top customers") are just next to the top customers. 
 - Segments 1 & 5 are overlapping. 
 
-This can be a "useful" segmentation. 
+Almost all segments are clearly distinguished.
 
 ## Customer segmentation table
 
@@ -443,9 +445,7 @@ Reports the segment & details of all customers.
 
 # CONCLUSIONS
 
-At first, the "best" number of segments were 2 clusters,
-but this number of clusters is not compatible with our company marketing department strategies (too small).
-So the next best "optimal" number of clusters is 5, which is within the business objectives
+The chosen "optimal" number of clusters is 5, which is within the business objectives
 of the company. It is crucial to work with the stakeholders while running the analysis, 
 in order to produce a useful output. 
 

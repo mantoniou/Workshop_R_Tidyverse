@@ -348,7 +348,7 @@ Below there is a scatter plot
 
 ```{r}
 iris %>%
-  ggplot(aes(Sepal.Length, Sepal.Width)) +
+  ggplot(aes(x = Sepal.Length, y = Sepal.Width)) +
   geom_point()
 
 ```
